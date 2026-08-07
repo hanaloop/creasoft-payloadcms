@@ -9,12 +9,16 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
+import { Docs } from './collections/Docs'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
+import { exportDocs } from './endpoints/exportDocs'
+import { BlogPosts } from './collections/BlogPosts'
+import { exportBlogPosts } from './endpoints/exportBlogPosts'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -63,7 +67,8 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users],
+  collections: [Pages, Posts, Media, Categories, Users, Docs, BlogPosts],
+  endpoints: [exportDocs, exportBlogPosts],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [
     ...plugins,

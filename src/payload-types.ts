@@ -72,6 +72,8 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    docs: Doc;
+    'blog-posts': BlogPost;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -94,6 +96,8 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    docs: DocsSelect<false> | DocsSelect<true>;
+    'blog-posts': BlogPostsSelect<false> | BlogPostsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -783,6 +787,129 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "docs".
+ */
+export interface Doc {
+  id: number;
+  locale: 'ko' | 'en' | 'es';
+  title: string;
+  description?: string | null;
+  /**
+   * 기존 MDX frontmatter를 보존합니다. 빌드 시 다시 MDX frontmatter로 내보냅니다.
+   */
+  sourceMetadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * 기존 MDX 원본 경로. 마이그레이션 추적용 필드입니다.
+   */
+  sourcePath?: string | null;
+  parent?: (number | null) | Doc;
+  order?: number | null;
+  tags?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  publishedAt?: string | null;
+  /**
+   * 문서를 작성하세요. 이미지와 안내문은 툴바의 블록 메뉴에서 추가할 수 있습니다.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Fumadocs URL 및 생성 파일명에 사용하는 고유 slug입니다.
+   */
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-posts".
+ */
+export interface BlogPost {
+  id: number;
+  title: string;
+  /**
+   * 목록과 검색 결과에 표시할 짧은 소개입니다.
+   */
+  description?: string | null;
+  /**
+   * 본문을 작성하세요. 이미지와 안내문은 툴바의 블록 메뉴에서 추가할 수 있습니다.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  locale: 'ko' | 'en' | 'es';
+  publishedAt?: string | null;
+  authors?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  tags?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * URL에 사용됩니다. 비워 두면 새 글 생성 시 제목으로 자동 생성됩니다.
+   */
+  slug?: string | null;
+  subtitle?: string | null;
+  summary?: string | null;
+  sourceMetadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourcePath?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -990,6 +1117,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'docs';
+        value: number | Doc;
+      } | null)
+    | ({
+        relationTo: 'blog-posts';
+        value: number | BlogPost;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1355,6 +1490,62 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "docs_select".
+ */
+export interface DocsSelect<T extends boolean = true> {
+  locale?: T;
+  title?: T;
+  description?: T;
+  sourceMetadata?: T;
+  sourcePath?: T;
+  parent?: T;
+  order?: T;
+  tags?:
+    | T
+    | {
+        value?: T;
+        id?: T;
+      };
+  publishedAt?: T;
+  content?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-posts_select".
+ */
+export interface BlogPostsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  content?: T;
+  locale?: T;
+  publishedAt?: T;
+  authors?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  tags?:
+    | T
+    | {
+        value?: T;
+        id?: T;
+      };
+  slug?: T;
+  subtitle?: T;
+  summary?: T;
+  sourceMetadata?: T;
+  sourcePath?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

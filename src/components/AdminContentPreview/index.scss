@@ -1,0 +1,124 @@
+.admin-content-preview {
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: var(--border-radius-m);
+  overflow: hidden;
+
+  &__toolbar {
+    align-items: center;
+    background: var(--theme-elevation-50);
+    border-bottom: 1px solid var(--theme-elevation-200);
+    display: flex;
+    gap: var(--base);
+    justify-content: space-between;
+    padding: calc(var(--base) * 1.5) calc(var(--base) * 2);
+
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+    }
+
+    > span {
+      color: var(--theme-elevation-600);
+      font-size: 0.875rem;
+    }
+  }
+
+  &__eyebrow {
+    color: var(--theme-success-500);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &__body {
+    line-height: 1.7;
+    margin: 0 auto;
+    max-width: 56rem;
+    padding: calc(var(--base) * 3) calc(var(--base) * 2);
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 1.5em 0 0.65em;
+    }
+
+    p,
+    ul,
+    ol,
+    blockquote {
+      margin: 1em 0;
+    }
+
+    table {
+      border-collapse: collapse;
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      width: max-content;
+    }
+
+    td,
+    th {
+      border: 1px solid var(--theme-elevation-300);
+      padding: calc(var(--base) * 0.75);
+    }
+  }
+
+  &__callout {
+    border-left: 4px solid var(--theme-elevation-400);
+    margin: calc(var(--base) * 1.5) 0;
+    padding: var(--base) calc(var(--base) * 1.25);
+
+    &--info {
+      background: color-mix(in srgb, var(--theme-success-500) 12%, transparent);
+      border-color: var(--theme-success-500);
+    }
+
+    &--warning {
+      background: color-mix(in srgb, #f59e0b 12%, transparent);
+      border-color: #f59e0b;
+    }
+
+    &--error {
+      background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+      border-color: var(--theme-error-500);
+    }
+  }
+
+  &__image {
+    margin: calc(var(--base) * 2) 0;
+
+    img {
+      display: block;
+      height: auto;
+      max-width: 100%;
+    }
+
+    figcaption {
+      color: var(--theme-elevation-600);
+      font-size: 0.875rem;
+      margin-top: calc(var(--base) * 0.5);
+      text-align: center;
+    }
+  }
+
+  &__image-placeholder {
+    align-items: center;
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    display: flex;
+    justify-content: center;
+    min-height: 12rem;
+  }
+
+  &__empty {
+    color: var(--theme-elevation-600);
+    text-align: center;
+  }
+}
