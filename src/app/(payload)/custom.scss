@@ -1,0 +1,24 @@
+/* Docs와 BlogPosts의 본문 탭만 넓고 긴 작성 공간으로 표시합니다. */
+.blog-content-editor,
+.docs-content-editor {
+  .rich-text-lexical__wrap {
+    border: 1px solid var(--theme-elevation-150);
+    border-radius: var(--style-radius-m);
+    padding: calc(var(--base) * 1.25);
+    background: var(--theme-input-bg);
+  }
+
+  .ContentEditable__root {
+    min-height: 48rem;
+  }
+
+  @media (max-width: 768px) {
+    .rich-text-lexical__wrap {
+      padding: var(--base);
+    }
+
+    .ContentEditable__root {
+      min-height: 32rem;
+    }
+  }
+}
