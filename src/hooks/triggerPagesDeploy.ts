@@ -1,41 +1,41 @@
-import { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
+import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
-const owner = 'hanaloop'
-const repo = 'hanaloop.net'
-const workflow = 'deploy-gh-pages.yml'
+const gitLabApiURL = process.env.GITLAB_API_URL || 'https://gitlab.com/api/v4'
 
-async function triggerPagesDeploy(reason: string) {
-  const token = process.env.GITHUB_PAGES_DEPLOY_TOKEN
+async function triggerGitLabPagesDeploy(reason: string) {
+  const projectID = process.env.GITLAB_PROJECT_ID
+  const token = process.env.GITLAB_TRIGGER_TOKEN
 
-  if (!token) {
-    console.error('[pages-deploy] GITHUB_PAGES_DEPLOY_TOKEN is not set; skipping.')
+  if (!projectID || !token) {
+    console.warn(
+      '[pages-deploy] GITLAB_PROJECT_ID or GITLAB_TRIGGER_TOKEN is not set; skipping.',
+    )
     return
   }
 
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`,
+    `${gitLabApiURL}/projects/${encodeURIComponent(projectID)}/trigger/pipeline`,
     {
       method: 'POST',
       headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${token}`,
-        'X-Github-api-Version': '2022-11-28',
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        ref: process.env.GITHUB_PAGES_DEPLOY_REF || 'published',
+      body: new URLSearchParams({
+        token,
+        ref: process.env.GITLAB_DEPLOY_REF || 'main',
+        'variables[PAYLOAD_DEPLOY_REASON]': reason,
       }),
     },
   )
 
   if (!response.ok) {
     throw new Error(
-      `[pages-deploy] Github workflow dispatch failed: ${response.status} ${await response.text()},`,
+      `[pages-deploy] GitLab pipeline trigger failed: ${response.status} ${await response.text()}`,
     )
   }
 }
 
-export const triggerPagesDeplotAfterChange: CollectionAfterChangeHook = async ({
+export const triggerGitLabPagesDeployAfterChange: CollectionAfterChangeHook = async ({
   collection,
   doc,
   previousDoc,
@@ -44,16 +44,18 @@ export const triggerPagesDeplotAfterChange: CollectionAfterChangeHook = async ({
     doc._status === 'published' || previousDoc?._status === 'published'
 
   if (affectsPublishedContent) {
-    await triggerPagesDeploy(`${collection.slug}: ${doc.id}:changed`)
+    await triggerGitLabPagesDeploy(`${collection.slug}:${doc.id}:changed`)
   }
 
   return doc
 }
 
-export const triggerPagesDeployAfterDelete: CollectionAfterDeleteHook = async ({
+export const triggerGitLabPagesDeployAfterDelete: CollectionAfterDeleteHook = async ({
   collection,
   doc,
 }) => {
-  await triggerPagesDeploy(`${collection.slug}: ${doc.id}:deleted`)
+  if (doc._status === 'published') {
+    await triggerGitLabPagesDeploy(`${collection.slug}:${doc.id}:deleted`)
+  }
   return doc
 }
