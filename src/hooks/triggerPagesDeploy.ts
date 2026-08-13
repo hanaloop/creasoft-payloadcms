@@ -18,15 +18,12 @@ async function triggerPagesDeploy(reason: string) {
       method: 'POST',
       headers: {
         Accept: 'application/vnd.github+json',
-        Authorizaiton: `Bearer ${token}`,
-        'X-GITHUB-api-Version': '2022-11-28',
+        Authorization: `Bearer ${token}`,
+        'X-Github-api-Version': '2022-11-28',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         ref: process.env.GITHUB_PAGES_DEPLOY_REF || 'published',
-        inputs: {
-          reason,
-        },
       }),
     },
   )
