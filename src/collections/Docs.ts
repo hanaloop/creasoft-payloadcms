@@ -2,6 +2,7 @@ import { authenticated } from '@/access/authenticated'
 import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { Callout } from '@/blocks/docs/Callout'
 import { CaptionedImage } from '@/blocks/docs/CaptionedImage'
+import { triggerPagesDeplotAfterChange, triggerPagesDeployAfterDelete } from '@/hooks/triggerPagesDeploy'
 import {
   BlocksFeature,
   lexicalEditor,
@@ -10,6 +11,10 @@ import {
 import { type CollectionConfig } from 'payload'
 
 export const Docs: CollectionConfig<'docs'> = {
+  hooks: {
+    afterChange: [triggerPagesDeplotAfterChange],
+    afterDelete: [triggerPagesDeployAfterDelete]
+  },
   slug: 'docs',
   indexes: [
     {

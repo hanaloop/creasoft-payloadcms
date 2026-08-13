@@ -3,6 +3,10 @@ import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { Callout } from '@/blocks/docs/Callout'
 import { CaptionedImage } from '@/blocks/docs/CaptionedImage'
 import {
+  triggerPagesDeplotAfterChange,
+  triggerPagesDeployAfterDelete,
+} from '@/hooks/triggerPagesDeploy'
+import {
   BlocksFeature,
   lexicalEditor,
   EXPERIMENTAL_TableFeature,
@@ -28,6 +32,8 @@ export const BlogPosts: CollectionConfig<'blog-posts'> = {
         return data
       },
     ],
+    afterChange: [triggerPagesDeplotAfterChange],
+    afterDelete: [triggerPagesDeployAfterDelete],
   },
 
   indexes: [

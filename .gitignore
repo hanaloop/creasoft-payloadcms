@@ -35,3 +35,4 @@ postgres-data/
 pnpm-lock.yaml
 
 docs/architecture/
+.env*
