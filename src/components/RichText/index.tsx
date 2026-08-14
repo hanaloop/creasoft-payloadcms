@@ -3,6 +3,7 @@ import {
   DefaultNodeTypes,
   SerializedBlockNode,
   SerializedLinkNode,
+  SerializedUploadNode,
   type DefaultTypedEditorState,
 } from '@payloadcms/richtext-lexical'
 import {
@@ -16,15 +17,43 @@ import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
 import type {
   BannerBlock as BannerBlockProps,
   CallToActionBlock as CTABlockProps,
+  Media as MediaType,
   MediaBlock as MediaBlockProps,
 } from '@/payload-types'
 import { BannerBlock } from '@/blocks/Banner/Component'
 import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { cn } from '@/utilities/ui'
+import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 type NodeTypes =
   | DefaultNodeTypes
   | SerializedBlockNode<CTABlockProps | MediaBlockProps | BannerBlockProps | CodeBlockProps>
+
+const upload = ({ node }: { node: SerializedUploadNode }) => {
+  if (!node.value || typeof node.value !== 'object') return null
+
+  const { alt, height, mimeType, url, width, filename } = node.value as MediaType
+
+  if (!url) return null
+
+  if (!mimeType?.startsWith('image')) {
+    return (
+      <a href={getMediaUrl(url)} rel="noopener noreferrer">
+        {filename || '첨부 파일'}
+      </a>
+    )
+  }
+
+  return (
+    <img
+      alt={node.fields?.alt || alt || ''}
+      className="my-6 h-auto max-w-full rounded-[0.8rem]"
+      height={height || undefined}
+      src={getMediaUrl(url)}
+      width={width || undefined}
+    />
+  )
+}
 
 const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
   const { value, relationTo } = linkNode.fields.doc!
@@ -38,6 +67,7 @@ const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({
   ...defaultConverters,
   ...LinkJSXConverter({ internalDocToHref }),
+  upload,
   blocks: {
     banner: ({ node }) => <BannerBlock className="col-start-2 mb-4" {...node.fields} />,
     mediaBlock: ({ node }) => (

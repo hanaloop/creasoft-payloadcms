@@ -10,6 +10,7 @@ import {
   BlocksFeature,
   lexicalEditor,
   EXPERIMENTAL_TableFeature,
+  UploadFeature,
 } from '@payloadcms/richtext-lexical'
 import { type CollectionConfig } from 'payload'
 
@@ -111,7 +112,8 @@ export const Docs: CollectionConfig<'docs'> = {
       },
       editor: lexicalEditor({
         features: ({ defaultFeatures }) => [
-          ...defaultFeatures,
+          ...defaultFeatures.filter(({ key }) => key !== 'upload'),
+          UploadFeature({ enabledCollections: ['media'] }),
           EXPERIMENTAL_TableFeature(),
           BlocksFeature({
             blocks: [CaptionedImage, Callout],
