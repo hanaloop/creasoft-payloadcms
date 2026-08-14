@@ -58,7 +58,12 @@ export const CaptionedImage: Block = {
             }
             return {
                 props: {
-                    imageSrc: toAbsoluteMediaURL(imageSrc),
+                    // Legacy MDX images live under hanaloop.com's public/images.
+                    // Keep their root-relative path so the generated MDX resolves
+                    // them against the public site, not the Payload Admin domain.
+                    // Media uploads, on the other hand, are served by Payload/Blob
+                    // and therefore need an absolute URL when the static site renders.
+                    imageSrc: media?.url ? toAbsoluteMediaURL(media.url) : imageSrc,
                     caption: fields.caption ?? '',
                     isHero: fields.isHero ?? false,
                     containerClassName: fields.containerClassName ?? '',
