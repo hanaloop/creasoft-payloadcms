@@ -1,4 +1,11 @@
 import type { Block } from "payload";
+import { getServerSideURL } from '@/utilities/getURL'
+
+const toAbsoluteMediaURL = (url: string) => {
+    if (!url.startsWith('/')) return url
+
+    return new URL(url, getServerSideURL()).toString()
+}
 
 export const CaptionedImage: Block = {
     slug: 'CaptionedImage',
@@ -51,7 +58,7 @@ export const CaptionedImage: Block = {
             }
             return {
                 props: {
-                    imageSrc,
+                    imageSrc: toAbsoluteMediaURL(imageSrc),
                     caption: fields.caption ?? '',
                     isHero: fields.isHero ?? false,
                     containerClassName: fields.containerClassName ?? '',

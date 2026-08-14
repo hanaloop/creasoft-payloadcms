@@ -1,6 +1,15 @@
 import { BlogPosts } from "@/collections/BlogPosts";
 import { convertLexicalToMarkdown, editorConfigFactory } from "@payloadcms/richtext-lexical";
 import { Endpoint, RichTextField } from "payload";
+import { getServerSideURL } from '@/utilities/getURL'
+
+const toAbsoluteMediaURLs = (mdx: string) => {
+  const payloadURL = getServerSideURL()
+
+  return mdx.replace(/(["'(])((?:\/api\/media\/|\/media\/)[^"'()\s]+)/g, (_match, prefix, url) => {
+    return `${prefix}${new URL(url, payloadURL).toString()}`
+  })
+}
 
 const tabsField = BlogPosts.fields.find((field) => field.type === 'tabs')
 
@@ -58,10 +67,12 @@ export const exportBlogPosts: Endpoint = {
         publishedAt: post.publishedAt,
         sourcePath: post.sourcePath,
         sourceMetadata: post.sourceMetadata,
-        mdx: convertLexicalToMarkdown({
-          data: post.content,
-          editorConfig,
-        })
+        mdx: toAbsoluteMediaURLs(
+          convertLexicalToMarkdown({
+            data: post.content,
+            editorConfig,
+          }),
+        )
       }))
     })
   }
