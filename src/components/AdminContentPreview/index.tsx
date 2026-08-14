@@ -2,7 +2,7 @@
 
 import type { DefaultTypedEditorState } from '@payloadcms/richtext-lexical'
 import { RichText, type JSXConvertersFunction } from '@payloadcms/richtext-lexical/react'
-import { useFormFields } from '@payloadcms/ui'
+import { useFormFields, usePayloadAPI } from '@payloadcms/ui'
 
 import './index.scss'
 
@@ -14,7 +14,10 @@ type PreviewBlockFields = {
   blockType?: string
   caption?: string
   content?: DefaultTypedEditorState
-  image?: { url?: string } | string
+  image?:
+    | { id?: number | string; url?: string; value?: { id?: number | string; url?: string } | number | string }
+    | number
+    | string
   legacyImageSrc?: string
   type?: 'error' | 'info' | 'success' | 'warning'
 }
@@ -23,9 +26,39 @@ function isEditorState(value: unknown): value is DefaultTypedEditorState {
   return Boolean(value && typeof value === 'object' && 'root' in value)
 }
 
-function getImageURL(fields: PreviewBlockFields): string | undefined {
-  if (fields.image && typeof fields.image === 'object') return fields.image.url
-  return fields.legacyImageSrc
+function getImageURL(image: PreviewBlockFields['image']): string | undefined {
+  if (image && typeof image === 'object') {
+    if (image.url) return image.url
+    return getImageURL(image.value)
+  }
+  return typeof image === 'string' && image.startsWith('http') ? image : undefined
+}
+
+function getMediaID(image: PreviewBlockFields['image']): number | string | undefined {
+  if (image && typeof image === 'object') return image.id || getMediaID(image.value)
+  if (typeof image === 'number') return image
+  if (typeof image === 'string' && /^\d+$/.test(image)) return image
+  return undefined
+}
+
+function CaptionedImagePreview({ fields }: { fields: PreviewBlockFields }) {
+  const initialURL = getImageURL(fields.image) || fields.legacyImageSrc
+  const mediaID = getMediaID(fields.image)
+  const [{ data }] = usePayloadAPI(mediaID ? `/api/media/${mediaID}` : '', {
+    initialData: initialURL ? { url: initialURL } : undefined,
+  })
+  const imageURL = data?.url || initialURL
+
+  return (
+    <figure className="admin-content-preview__image">
+      {imageURL ? (
+        <img alt={fields.caption ?? ''} src={imageURL} />
+      ) : (
+        <div className="admin-content-preview__image-placeholder">이미지를 선택하세요.</div>
+      )}
+      {fields.caption ? <figcaption>{fields.caption}</figcaption> : null}
+    </figure>
+  )
 }
 
 const previewConverters: JSXConvertersFunction = ({ defaultConverters }) => ({
@@ -50,20 +83,7 @@ const previewConverters: JSXConvertersFunction = ({ defaultConverters }) => ({
     },
     CaptionedImage: ({ node }: { node: { fields: PreviewBlockFields } }) => {
       const fields = node.fields as PreviewBlockFields
-      const imageURL = getImageURL(fields)
-
-      return (
-        <figure className="admin-content-preview__image">
-          {imageURL ? (
-            <img alt={fields.caption ?? ''} src={imageURL} />
-          ) : (
-            <div className="admin-content-preview__image-placeholder">
-              이미지를 선택하세요.
-            </div>
-          )}
-          {fields.caption ? <figcaption>{fields.caption}</figcaption> : null}
-        </figure>
-      )
+      return <CaptionedImagePreview fields={fields} />
     },
   },
 })
