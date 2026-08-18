@@ -50,6 +50,7 @@ const execFile = promisify(execFileCallback)
 const write = args.has('--write')
 const sourceRoot = process.env.HANALOOP_CONTENT_DIR
 const selectedLocale = process.env.DOCS_IMPORT_LOCALE
+const selectedSlug = process.env.DOCS_IMPORT_SLUG
 const sourceGitRef = process.env.HANALOOP_GIT_REF
 
 if (!sourceRoot) {
@@ -240,24 +241,7 @@ function glossaryTerms(dataSource: string, variableName: string): GlossaryTerm[]
   })
 }
 
-function tableCell(value: string): string {
-  return value.replaceAll('|', '\\|').replace(/\r?\n/g, '<br />')
-}
-
-function glossaryTable(terms: GlossaryTerm[]): string {
-  const rows = terms
-    .sort((left, right) => left.title.localeCompare(right.title))
-    .map((term) => {
-      const source = term.sourceUrl
-        ? `[${term.source ?? 'Source'}](${term.sourceUrl})`
-        : term.source ?? ''
-      return `| ${tableCell(term.title)} | ${tableCell(term.description)}${source ? `<br />${source}` : ''} |`
-    })
-
-  return ['| 용어 | 설명 |', '| --- | --- |', ...rows].join('\n')
-}
-
-async function glossaryToMarkdown(source: SourceDocument): Promise<string> {
+async function glossaryDataSource(source: SourceDocument): Promise<string> {
   const dataPath = source.absolutePath.replace(/\.mdx?$/, '.data.tsx')
   let dataSource: string
 
@@ -274,7 +258,7 @@ async function glossaryToMarkdown(source: SourceDocument): Promise<string> {
     dataSource = result.stdout
   }
 
-  return ['## 환경 용어', '', '### 한국어', '', glossaryTable(glossaryTerms(dataSource, 'termsKo_')), '', '### English', '', glossaryTable(glossaryTerms(dataSource, 'termsEn_'))].join('\n')
+  return dataSource
 }
 
 function normalizeMarkdown(markdown: string): string {
@@ -385,9 +369,81 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
   } as Doc['content']
 }
 
+type SerializedLexicalNode = { type: string; version: number; [key: string]: unknown }
+
+function markdownChildren(markdown: string, editorConfig: ReturnType<typeof editorConfigFactory.fromField>): SerializedLexicalNode[] {
+  return contentToLexical(markdown, editorConfig).root.children as SerializedLexicalNode[]
+}
+
+function glossaryCellMarkdown(term: GlossaryTerm): string {
+  const source = term.sourceUrl
+    ? `[${term.source ?? 'Source'}](${term.sourceUrl})`
+    : term.source ?? ''
+
+  return `${term.description}${source ? `  \n${source}` : ''}`
+}
+
+function glossaryTableNode(
+  terms: GlossaryTerm[],
+  editorConfig: ReturnType<typeof editorConfigFactory.fromField>,
+): SerializedLexicalNode {
+  const cell = (markdown: string, headerState: number): SerializedLexicalNode => ({
+    type: 'tablecell',
+    version: 1,
+    backgroundColor: null,
+    colSpan: 1,
+    headerState,
+    rowSpan: 1,
+    children: markdownChildren(markdown, editorConfig),
+  })
+  const row = (cells: SerializedLexicalNode[]): SerializedLexicalNode => ({
+    type: 'tablerow',
+    version: 1,
+    children: cells,
+  })
+
+  return {
+    type: 'table',
+    version: 1,
+    children: [
+      row([cell('용어', 1), cell('설명', 1)]),
+      ...terms
+        .sort((left, right) => left.title.localeCompare(right.title))
+        .map((term) => row([cell(term.title, 0), cell(glossaryCellMarkdown(term), 0)])),
+    ],
+  }
+}
+
+async function glossaryToLexical(
+  source: SourceDocument,
+  editorConfig: ReturnType<typeof editorConfigFactory.fromField>,
+): Promise<Doc['content']> {
+  const dataSource = await glossaryDataSource(source)
+  const koreanTerms = glossaryTerms(dataSource, 'termsKo_')
+  const englishTerms = glossaryTerms(dataSource, 'termsEn_')
+
+  return {
+    root: {
+      children: [
+        ...markdownChildren('## 환경 용어\n\n### 한국어', editorConfig),
+        glossaryTableNode(koreanTerms, editorConfig),
+        ...markdownChildren('### English', editorConfig),
+        glossaryTableNode(englishTerms, editorConfig),
+      ],
+      direction: null,
+      format: '',
+      indent: 0,
+      type: 'root',
+      version: 1,
+    },
+  } as Doc['content']
+}
+
 async function main() {
   const locales = (selectedLocale ? [selectedLocale] : ['ko', 'en', 'es']) as SourceDocument['locale'][]
-  const sourceDocuments = (await Promise.all(locales.map((locale) => collectMarkdownFiles(path.join(resolvedSourceRoot, locale, 'docs'), locale)))).flat()
+  const sourceDocuments = (await Promise.all(locales.map((locale) => collectMarkdownFiles(path.join(resolvedSourceRoot, locale, 'docs'), locale))))
+    .flat()
+    .filter((source) => !selectedSlug || path.basename(source.relativePath).replace(/\.mdx?$/, '') === selectedSlug)
   const contentField = Docs.fields.find((field) => 'name' in field && field.name === 'content') as RichTextField
   const editorConfig = editorConfigFactory.fromField({ field: contentField })
   const payload = write ? await getPayload({ config }) : null
@@ -400,8 +456,9 @@ async function main() {
       const parsed = matter(sourceContent)
       const slug = path.basename(source.relativePath).replace(/\.mdx?$/, '')
       const sourcePath = `${source.locale}/docs/${source.relativePath.replaceAll('\\', '/')}`
-      const markdown = slug === 'glossary' ? await glossaryToMarkdown(source) : parsed.content
-      const content = contentToLexical(markdown, editorConfig)
+      const content = slug === 'glossary'
+        ? await glossaryToLexical(source, editorConfig)
+        : contentToLexical(parsed.content, editorConfig)
       const data = {
         locale: source.locale,
         _status: 'published' as const,
