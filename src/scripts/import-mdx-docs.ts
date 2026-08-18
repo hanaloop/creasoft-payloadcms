@@ -420,7 +420,22 @@ async function main() {
       report.ready += 1
       if (!payload) continue
 
-      const existing = await payload.find({ collection: 'docs', depth: 0, limit: 1, where: { sourcePath: { equals: sourcePath } } })
+      const existing = await payload.find({
+        collection: 'docs',
+        depth: 0,
+        limit: 1,
+        where: {
+          or: [
+            { sourcePath: { equals: sourcePath } },
+            {
+              and: [
+                { locale: { equals: source.locale } },
+                { slug: { equals: slug } },
+              ],
+            },
+          ],
+        },
+      })
       if (existing.docs[0]) {
         await payload.update({ collection: 'docs', id: existing.docs[0].id, data, overrideAccess: true })
       } else {
