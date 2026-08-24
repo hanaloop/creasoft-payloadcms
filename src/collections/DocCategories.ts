@@ -1,4 +1,5 @@
 import { authenticated } from '@/access/authenticated'
+import { anyone } from '@/access/anyone'
 import type { CollectionConfig } from 'payload'
 
 export const DocCategories: CollectionConfig = {
@@ -31,7 +32,9 @@ export const DocCategories: CollectionConfig = {
   access: {
     create: authenticated,
     delete: authenticated,
-    read: authenticated,
+    // Published Docs are exported without an admin session. Their category
+    // hierarchy must therefore be readable to build the public navigation.
+    read: anyone,
     update: authenticated,
   },
   admin: {
