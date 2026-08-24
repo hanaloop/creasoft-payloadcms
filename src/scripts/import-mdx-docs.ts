@@ -63,7 +63,10 @@ if (selectedLocale && !['en', 'es', 'ko'].includes(selectedLocale)) {
   throw new Error('DOCS_IMPORT_LOCALE must be one of: ko, en, es.')
 }
 
-async function collectMarkdownFiles(directory: string, locale: SourceDocument['locale']): Promise<SourceDocument[]> {
+async function collectMarkdownFiles(
+  directory: string,
+  locale: SourceDocument['locale'],
+): Promise<SourceDocument[]> {
   const entries = await readdir(directory, { withFileTypes: true })
   const files: SourceDocument[] = []
 
@@ -95,7 +98,12 @@ async function sourceFileContent(source: SourceDocument): Promise<string | null>
   const repositoryRoot = path.dirname(resolvedSourceRoot)
   const repositoryPath = path.relative(repositoryRoot, source.absolutePath).replaceAll('\\', '/')
   try {
-    const { stdout } = await execFile('git', ['-C', repositoryRoot, 'show', `${sourceGitRef}:${repositoryPath}`])
+    const { stdout } = await execFile('git', [
+      '-C',
+      repositoryRoot,
+      'show',
+      `${sourceGitRef}:${repositoryPath}`,
+    ])
     return stdout
   } catch {
     // Documents created after the selected Git ref have no historical source
@@ -146,12 +154,20 @@ function imageBlockNode({
       isHero,
       containerClassName,
       imageClassName,
-      float: float.includes('float-left') ? 'float-left' : float.includes('float-right') ? 'float-right' : 'none',
+      float: float.includes('float-left')
+        ? 'float-left'
+        : float.includes('float-right')
+          ? 'float-right'
+          : 'none',
     },
   }
 }
 
-function captionedImageNode(node: MdxNode): { type: string; version: number; [key: string]: unknown } {
+function captionedImageNode(node: MdxNode): {
+  type: string
+  version: number
+  [key: string]: unknown
+} {
   const attributes = new Map(
     (node.attributes ?? [])
       .filter((attribute): attribute is MdxAttribute & { name: string } => Boolean(attribute.name))
@@ -191,10 +207,15 @@ function htmlImageNode(node: MdxNode): { type: string; version: number; [key: st
 }
 
 function buttonToMarkdown(source: string, button: MdxNode): string {
-  const anchor = sourceForNode(source, button).match(/<a\b[^>]*\bhref=(['\"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/i)
+  const anchor = sourceForNode(source, button).match(
+    /<a\b[^>]*\bhref=(['\"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/i,
+  )
   if (!anchor) throw new Error('button does not contain a static anchor link.')
 
-  const text = anchor[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+  const text = anchor[3]
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!text) throw new Error('button anchor has no text.')
 
   return `[${text}](${anchor[2]})`
@@ -207,7 +228,13 @@ function stringLiteralValue(node: ts.Expression | undefined): string | undefined
 }
 
 function glossaryTerms(dataSource: string, variableName: string): GlossaryTerm[] {
-  const sourceFile = ts.createSourceFile('glossary.data.tsx', dataSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const sourceFile = ts.createSourceFile(
+    'glossary.data.tsx',
+    dataSource,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  )
   const declaration = sourceFile.statements
     .filter(ts.isVariableStatement)
     .flatMap((statement) => statement.declarationList.declarations)
@@ -218,19 +245,24 @@ function glossaryTerms(dataSource: string, variableName: string): GlossaryTerm[]
   }
 
   return declaration.initializer.elements.map((element) => {
-    if (!ts.isObjectLiteralExpression(element)) throw new Error(`Glossary ${variableName} contains a non-object value.`)
+    if (!ts.isObjectLiteralExpression(element))
+      throw new Error(`Glossary ${variableName} contains a non-object value.`)
 
     const fields = new Map<string, string>()
     for (const property of element.properties) {
       if (!ts.isPropertyAssignment(property)) continue
-      const key = ts.isIdentifier(property.name) || ts.isStringLiteral(property.name) ? property.name.text : undefined
+      const key =
+        ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)
+          ? property.name.text
+          : undefined
       const value = stringLiteralValue(property.initializer)
       if (key && value !== undefined) fields.set(key, value)
     }
 
     const title = fields.get('title')
     const description = fields.get('description')
-    if (!title || !description) throw new Error(`Glossary ${variableName} contains an incomplete term.`)
+    if (!title || !description)
+      throw new Error(`Glossary ${variableName} contains an incomplete term.`)
 
     return {
       title,
@@ -248,13 +280,17 @@ async function glossaryDataSource(source: SourceDocument): Promise<string> {
   try {
     dataSource = await readFile(dataPath, 'utf8')
   } catch (error) {
-    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT' || !sourceGitRef) throw error
+    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT' || !sourceGitRef)
+      throw error
 
     const repositoryRoot = path.dirname(resolvedSourceRoot)
-    const repositoryPath = path
-      .relative(repositoryRoot, dataPath)
-      .replaceAll('\\', '/')
-    const result = await execFile('git', ['-C', repositoryRoot, 'show', `${sourceGitRef}:${repositoryPath}`])
+    const repositoryPath = path.relative(repositoryRoot, dataPath).replaceAll('\\', '/')
+    const result = await execFile('git', [
+      '-C',
+      repositoryRoot,
+      'show',
+      `${sourceGitRef}:${repositoryPath}`,
+    ])
     dataSource = result.stdout
   }
 
@@ -291,15 +327,19 @@ function innerSource(source: string, node: MdxNode): string {
 
 function htmlTableToMarkdown(source: string, table: MdxNode): string {
   const rows = findElements(table, 'tr')
-    .map((row) => (row.children ?? [])
-      .filter((cell) => cell.name === 'td' || cell.name === 'th')
-      .map((cell) => innerSource(source, cell).replaceAll('|', '\\|').replace(/\n+/g, '<br />')))
+    .map((row) =>
+      (row.children ?? [])
+        .filter((cell) => cell.name === 'td' || cell.name === 'th')
+        .map((cell) => innerSource(source, cell).replaceAll('|', '\\|').replace(/\n+/g, '<br />')),
+    )
     .filter((row) => row.length > 0)
 
   if (rows.length === 0) return ''
 
   const columnCount = Math.max(...rows.map((row) => row.length))
-  const normalizedRows = rows.map((row) => Array.from({ length: columnCount }, (_, index) => row[index] ?? ''))
+  const normalizedRows = rows.map((row) =>
+    Array.from({ length: columnCount }, (_, index) => row[index] ?? ''),
+  )
   const header = normalizedRows[0]
   const body = normalizedRows.slice(1)
 
@@ -310,9 +350,16 @@ function htmlTableToMarkdown(source: string, table: MdxNode): string {
   ].join('\n')
 }
 
-function contentToLexical(markdown: string, editorConfig: ReturnType<typeof editorConfigFactory.fromField>): Doc['content'] {
+function contentToLexical(
+  markdown: string,
+  editorConfig: ReturnType<typeof editorConfigFactory.fromField>,
+): Doc['content'] {
   const normalizedMarkdown = normalizeMarkdown(markdown)
-  const tree = unified().use(remarkParse).use(remarkMdx).use(remarkGfm).parse(normalizedMarkdown) as unknown as { children: MdxNode[] }
+  const tree = unified()
+    .use(remarkParse)
+    .use(remarkMdx)
+    .use(remarkGfm)
+    .parse(normalizedMarkdown) as unknown as { children: MdxNode[] }
   const children: Array<{ type: string; version: number; [key: string]: unknown }> = []
 
   for (const node of tree.children) {
@@ -323,7 +370,10 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
       continue
     }
 
-    if ((node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') && node.name === 'img') {
+    if (
+      (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') &&
+      node.name === 'img'
+    ) {
       children.push(htmlImageNode(node))
       continue
     }
@@ -333,7 +383,13 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
         markdown: htmlTableToMarkdown(normalizedMarkdown, node),
         editorConfig,
       })
-      children.push(...(state.root.children as Array<{ type: string; version: number; [key: string]: unknown }>))
+      children.push(
+        ...(state.root.children as Array<{
+          type: string
+          version: number
+          [key: string]: unknown
+        }>),
+      )
       continue
     }
 
@@ -342,7 +398,13 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
         markdown: buttonToMarkdown(normalizedMarkdown, node),
         editorConfig,
       })
-      children.push(...(state.root.children as Array<{ type: string; version: number; [key: string]: unknown }>))
+      children.push(
+        ...(state.root.children as Array<{
+          type: string
+          version: number
+          [key: string]: unknown
+        }>),
+      )
       continue
     }
 
@@ -354,7 +416,9 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
     if (!fragment.trim()) continue
 
     const state = convertMarkdownToLexical({ markdown: fragment, editorConfig })
-    children.push(...(state.root.children as Array<{ type: string; version: number; [key: string]: unknown }>))
+    children.push(
+      ...(state.root.children as Array<{ type: string; version: number; [key: string]: unknown }>),
+    )
   }
 
   return {
@@ -371,14 +435,17 @@ function contentToLexical(markdown: string, editorConfig: ReturnType<typeof edit
 
 type SerializedLexicalNode = { type: string; version: number; [key: string]: unknown }
 
-function markdownChildren(markdown: string, editorConfig: ReturnType<typeof editorConfigFactory.fromField>): SerializedLexicalNode[] {
+function markdownChildren(
+  markdown: string,
+  editorConfig: ReturnType<typeof editorConfigFactory.fromField>,
+): SerializedLexicalNode[] {
   return contentToLexical(markdown, editorConfig).root.children as SerializedLexicalNode[]
 }
 
 function glossaryCellMarkdown(term: GlossaryTerm): string {
   const source = term.sourceUrl
     ? `[${term.source ?? 'Source'}](${term.sourceUrl})`
-    : term.source ?? ''
+    : (term.source ?? '')
 
   return `${term.description}${source ? `  \n${source}` : ''}`
 }
@@ -440,14 +507,45 @@ async function glossaryToLexical(
 }
 
 async function main() {
-  const locales = (selectedLocale ? [selectedLocale] : ['ko', 'en', 'es']) as SourceDocument['locale'][]
-  const sourceDocuments = (await Promise.all(locales.map((locale) => collectMarkdownFiles(path.join(resolvedSourceRoot, locale, 'docs'), locale))))
+  const locales = (
+    selectedLocale ? [selectedLocale] : ['ko', 'en', 'es']
+  ) as SourceDocument['locale'][]
+  const sourceDocuments = (
+    await Promise.all(
+      locales.map((locale) =>
+        collectMarkdownFiles(path.join(resolvedSourceRoot, locale, 'docs'), locale),
+      ),
+    )
+  )
     .flat()
-    .filter((source) => !selectedSlug || path.basename(source.relativePath).replace(/\.mdx?$/, '') === selectedSlug)
-  const contentField = Docs.fields.find((field) => 'name' in field && field.name === 'content') as RichTextField
+    .filter(
+      (source) =>
+        !selectedSlug || path.basename(source.relativePath).replace(/\.mdx?$/, '') === selectedSlug,
+    )
+  const tabsField = Docs.fields.find((field) => field.type === 'tabs')
+
+  if (!tabsField || tabsField.type !== 'tabs') {
+    throw new Error('Docs tabs field was not found.')
+  }
+
+  const contentField = tabsField.tabs
+    .flatMap((tab) => tab.fields)
+    .find(
+      (field): field is RichTextField =>
+        'name' in field && field.name === 'content' && field.type === 'richText',
+    )
+
+  if (!contentField) {
+    throw new Error('Docs content field was not found.')
+  }
+
   const editorConfig = editorConfigFactory.fromField({ field: contentField })
   const payload = write ? await getPayload({ config }) : null
-  const report = { imported: 0, manualReview: [] as Array<{ path: string; reason: string }>, ready: 0 }
+  const report = {
+    imported: 0,
+    manualReview: [] as Array<{ path: string; reason: string }>,
+    ready: 0,
+  }
 
   for (const source of sourceDocuments) {
     try {
@@ -456,9 +554,10 @@ async function main() {
       const parsed = matter(sourceContent)
       const slug = path.basename(source.relativePath).replace(/\.mdx?$/, '')
       const sourcePath = `${source.locale}/docs/${source.relativePath.replaceAll('\\', '/')}`
-      const content = slug === 'glossary'
-        ? await glossaryToLexical(source, editorConfig)
-        : contentToLexical(parsed.content, editorConfig)
+      const content =
+        slug === 'glossary'
+          ? await glossaryToLexical(source, editorConfig)
+          : contentToLexical(parsed.content, editorConfig)
       const data = {
         locale: source.locale,
         _status: 'published' as const,
@@ -470,7 +569,9 @@ async function main() {
         publishedAt: parsed.data.date ?? parsed.data.publishedAt,
         slug,
         sourcePath,
-        tags: Array.isArray(parsed.data.tags) ? parsed.data.tags.map((value) => ({ value: String(value) })) : [],
+        tags: Array.isArray(parsed.data.tags)
+          ? parsed.data.tags.map((value) => ({ value: String(value) }))
+          : [],
         content,
       }
 
@@ -485,16 +586,18 @@ async function main() {
           or: [
             { sourcePath: { equals: sourcePath } },
             {
-              and: [
-                { locale: { equals: source.locale } },
-                { slug: { equals: slug } },
-              ],
+              and: [{ locale: { equals: source.locale } }, { slug: { equals: slug } }],
             },
           ],
         },
       })
       if (existing.docs[0]) {
-        await payload.update({ collection: 'docs', id: existing.docs[0].id, data, overrideAccess: true })
+        await payload.update({
+          collection: 'docs',
+          id: existing.docs[0].id,
+          data,
+          overrideAccess: true,
+        })
       } else {
         await payload.create({ collection: 'docs', data, overrideAccess: true })
       }

@@ -13,6 +13,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "ii": "cross-env NODE_OPTIONS=--no-deprecation pnpm --ignore-workspace install",
     "import:docs": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/import-mdx-docs.ts",
+    "sync:doc-categories": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/sync-doc-categories.ts",
     "import:blog": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/import-mdx-blog.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "lint:fix": "cross-env NODE_OPTIONS=--no-deprecation eslint . --fix",

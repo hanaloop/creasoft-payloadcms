@@ -7,9 +7,7 @@ async function triggerGitLabPagesDeploy(reason: string) {
   const token = process.env.GITLAB_TRIGGER_TOKEN
 
   if (!projectID || !token) {
-    console.warn(
-      '[pages-deploy] GITLAB_PROJECT_ID or GITLAB_TRIGGER_TOKEN is not set; skipping.',
-    )
+    console.warn('[pages-deploy] GITLAB_PROJECT_ID or GITLAB_TRIGGER_TOKEN is not set; skipping.')
     return
   }
 
@@ -37,9 +35,12 @@ async function triggerGitLabPagesDeploy(reason: string) {
 
 export const triggerGitLabPagesDeployAfterChange: CollectionAfterChangeHook = async ({
   collection,
+  context,
   doc,
   previousDoc,
 }) => {
+  if (context?.skipPagesDeploy) return doc
+
   const affectsPublishedContent =
     doc._status === 'published' || previousDoc?._status === 'published'
 

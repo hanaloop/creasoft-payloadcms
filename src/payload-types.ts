@@ -72,6 +72,7 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    'doc-categories': DocCategory;
     docs: Doc;
     'blog-posts': BlogPost;
     redirects: Redirect;
@@ -96,6 +97,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'doc-categories': DocCategoriesSelect<false> | DocCategoriesSelect<true>;
     docs: DocsSelect<false> | DocsSelect<true>;
     'blog-posts': BlogPostsSelect<false> | BlogPostsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
@@ -787,38 +789,34 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "doc-categories".
+ */
+export interface DocCategory {
+  id: number;
+  title: string;
+  locale: 'ko' | 'en' | 'es';
+  /**
+   * 필요하면 카테고리를 여러 단계로 구성할 수 있습니다.
+   */
+  parent?: (number | null) | DocCategory;
+  /**
+   * URL 및 생성 경로에 사용됩니다. 비워 두면 제목에서 자동 생성됩니다.
+   */
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "docs".
  */
 export interface Doc {
   id: number;
-  locale: 'ko' | 'en' | 'es';
   title: string;
+  /**
+   * 문서 목록과 검색 결과에 표시할 짧은 소개입니다.
+   */
   description?: string | null;
-  /**
-   * 기존 MDX frontmatter를 보존합니다. 빌드 시 다시 MDX frontmatter로 내보냅니다.
-   */
-  sourceMetadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * 기존 MDX 원본 경로. 마이그레이션 추적용 필드입니다.
-   */
-  sourcePath?: string | null;
-  parent?: (number | null) | Doc;
-  order?: number | null;
-  tags?:
-    | {
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
-  publishedAt?: string | null;
   /**
    * 문서를 작성하세요. 이미지와 안내문은 툴바의 블록 메뉴에서 추가할 수 있습니다.
    */
@@ -837,10 +835,42 @@ export interface Doc {
     };
     [k: string]: unknown;
   };
+  locale: 'ko' | 'en' | 'es';
+  publishedAt?: string | null;
   /**
-   * Fumadocs URL 및 생성 파일명에 사용하는 고유 slug입니다.
+   * 이 문서를 넣을 기존 폴더를 선택하세요. 새 카테고리(폴더)가 필요하면 선택창의 생성 버튼을 사용하세요.
+   */
+  parent?: (number | null) | DocCategory;
+  /**
+   * 같은 상위 문서 안에서 표시할 순서입니다. 숫자가 작을수록 먼저 표시됩니다.
+   */
+  order?: number | null;
+  tags?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Fumadocs URL 및 생성 파일명에 사용됩니다. 비워 두면 새 문서 생성 시 제목으로 자동 생성됩니다.
    */
   slug: string;
+  /**
+   * 기존 MDX frontmatter를 보존합니다. 빌드 시 다시 MDX frontmatter로 내보냅니다.
+   */
+  sourceMetadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * 기존 MDX 원본 경로. 마이그레이션 추적용 필드입니다.
+   */
+  sourcePath?: string | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -1117,6 +1147,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'doc-categories';
+        value: number | DocCategory;
       } | null)
     | ({
         relationTo: 'docs';
@@ -1493,14 +1527,26 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "doc-categories_select".
+ */
+export interface DocCategoriesSelect<T extends boolean = true> {
+  title?: T;
+  locale?: T;
+  parent?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "docs_select".
  */
 export interface DocsSelect<T extends boolean = true> {
-  locale?: T;
   title?: T;
   description?: T;
-  sourceMetadata?: T;
-  sourcePath?: T;
+  content?: T;
+  locale?: T;
+  publishedAt?: T;
   parent?: T;
   order?: T;
   tags?:
@@ -1509,9 +1555,9 @@ export interface DocsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
-  publishedAt?: T;
-  content?: T;
   slug?: T;
+  sourceMetadata?: T;
+  sourcePath?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

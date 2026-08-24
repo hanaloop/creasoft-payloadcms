@@ -2,9 +2,22 @@ import { Docs } from '@/collections/Docs'
 import { convertLexicalToMarkdown, editorConfigFactory } from '@payloadcms/richtext-lexical'
 import { Endpoint, RichTextField } from 'payload'
 
-const contentField = Docs.fields.find(
-  (field) => 'name' in field && field.name === 'content',
-) as RichTextField
+const tabsField = Docs.fields.find((field) => field.type === 'tabs')
+
+if (!tabsField || tabsField.type !== 'tabs') {
+  throw new Error('Docs tabs field was not found.')
+}
+
+const contentField = tabsField.tabs
+  .flatMap((tab) => tab.fields)
+  .find(
+    (field): field is RichTextField =>
+      'name' in field && field.name === 'content' && field.type === 'richText',
+  )
+
+if (!contentField) {
+  throw new Error('Docs content field was not found.')
+}
 
 export const exportDocs: Endpoint = {
   path: '/docs-export',

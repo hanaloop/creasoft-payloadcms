@@ -10,6 +10,7 @@ import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Docs } from './collections/Docs'
+import { DocCategories } from './collections/DocCategories'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -17,6 +18,7 @@ import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { exportDocs } from './endpoints/exportDocs'
+import { convertMarkdown } from './endpoints/convertMarkdown'
 import { BlogPosts } from './collections/BlogPosts'
 import { exportBlogPosts } from './endpoints/exportBlogPosts'
 
@@ -67,8 +69,8 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Docs, BlogPosts],
-  endpoints: [exportDocs, exportBlogPosts],
+  collections: [Pages, Posts, Media, Categories, Users, DocCategories, Docs, BlogPosts],
+  endpoints: [exportDocs, exportBlogPosts, convertMarkdown],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [
     ...plugins,

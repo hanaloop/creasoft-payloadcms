@@ -73,6 +73,14 @@ export const BlogPosts: CollectionConfig<'blog-posts'> = {
           label: '본문 작성',
           fields: [
             {
+              name: 'markdownPaste',
+              type: 'ui',
+              admin: {
+                components: { Field: '@/components/MarkdownPaste' },
+                custom: { collection: 'blog-posts' },
+              },
+            },
+            {
               name: 'description',
               type: 'textarea',
               admin: {
