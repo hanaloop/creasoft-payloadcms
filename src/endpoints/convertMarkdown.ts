@@ -16,6 +16,32 @@ function contentField(collection: typeof Docs | typeof BlogPosts): RichTextField
   return field
 }
 
+function htmlTablesToMarkdown(markdown: string): string {
+  return markdown.replace(/<table\b[^>]*>([\s\S]*?)<\/table>/gi, (_table, tableContent) => {
+    const rows = [...tableContent.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)]
+      .map(([, row]) =>
+        [...row.matchAll(/<t[hd]\b[^>]*>([\s\S]*?)<\/t[hd]>/gi)].map(([, cell]) =>
+          cell
+            .replace(/<br\s*\/?\s*>/gi, '<br>')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\|/g, '\\|')
+            .trim(),
+        ),
+      )
+      .filter((row) => row.length > 0)
+
+    if (rows.length === 0) return ''
+
+    const header = rows[0]
+    const divider = header.map(() => '---')
+    return [
+      '| ' + header.join(' | ') + ' |',
+      '| ' + divider.join(' | ') + ' |',
+      ...rows.slice(1).map((row) => '| ' + row.join(' | ') + ' |'),
+    ].join('\n')
+  })
+}
+
 export const convertMarkdown: Endpoint = {
   path: '/convert-markdown',
   method: 'post',
@@ -33,6 +59,11 @@ export const convertMarkdown: Endpoint = {
     const field = contentField(collection === 'docs' ? Docs : BlogPosts)
     const editorConfig = editorConfigFactory.fromField({ field })
 
-    return Response.json({ content: convertMarkdownToLexical({ editorConfig, markdown }) })
+    return Response.json({
+      content: convertMarkdownToLexical({
+        editorConfig,
+        markdown: htmlTablesToMarkdown(markdown),
+      }),
+    })
   },
 }

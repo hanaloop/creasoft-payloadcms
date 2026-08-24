@@ -19,6 +19,13 @@ if (!contentField) {
   throw new Error('Docs content field was not found.')
 }
 
+function categoryPath(category: unknown): string[] {
+  if (!category || typeof category !== 'object' || !('slug' in category)) return []
+
+  const record = category as { parent?: unknown; slug?: unknown }
+  return [...categoryPath(record.parent), ...(typeof record.slug === 'string' ? [record.slug] : [])]
+}
+
 export const exportDocs: Endpoint = {
   path: '/docs-export',
   method: 'get',
@@ -30,7 +37,7 @@ export const exportDocs: Endpoint = {
 
     const result = await req.payload.find({
       collection: 'docs',
-      depth: 1,
+      depth: 10,
       limit: 0,
       sort: 'parent,order,title',
       req,
@@ -55,6 +62,7 @@ export const exportDocs: Endpoint = {
       sourceMetadata: doc.sourceMetadata,
       tags: doc.tags?.map(({ value }) => value),
       parent: doc.parent && typeof doc.parent === 'object' ? doc.parent.slug : null,
+      parentPath: categoryPath(doc.parent),
       mdx: convertLexicalToMarkdown({
         data: doc.content,
         editorConfig,
