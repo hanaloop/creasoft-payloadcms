@@ -63,6 +63,7 @@ export const exportDocs: Endpoint = {
       tags: doc.tags?.map(({ value }) => value),
       parent: doc.parent && typeof doc.parent === 'object' ? doc.parent.slug : null,
       parentPath: categoryPath(doc.parent),
+      publishedAt: doc.publishedAt,
       mdx: convertLexicalToMarkdown({
         data: doc.content,
         editorConfig,

@@ -80,6 +80,13 @@ export const Docs: CollectionConfig<'docs'> = {
               },
             },
             {
+              name: 'summary',
+              type: 'textarea',
+              admin: {
+                description: '본문에 해당하는 짧은 요약입니다.'
+              },
+            },
+            {
               name: 'description',
               type: 'textarea',
               admin: {
