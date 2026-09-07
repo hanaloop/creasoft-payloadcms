@@ -22,6 +22,48 @@ type CategoryDefinition = {
   title: string
 }
 
+const args = new Set(process.argv.slice(2))
+const categoriesOnly = args.has('--categories-only')
+
+const legacyCategoryTitles: Record<string, Record<Locale, string>> = {
+  'x20_environment-general': {
+    ko: '환경 규제, 공시 관련',
+    en: 'Environmental Regulations & Disclosures',
+    es: 'Regulaciones ambientales y divulgación',
+  },
+  'x20_environment-general/EU-regulations': {
+    ko: 'EU 규제',
+    en: 'EU Regulations',
+    es: 'Regulaciones de la UE',
+  },
+  'x20_environment-general/global-regulations': {
+    ko: '글로벌 규제',
+    en: 'Global Regulations',
+    es: 'Regulaciones globales',
+  },
+  x30_platform: {
+    ko: 'Hana.eco',
+    en: 'Hana.eco',
+    es: 'Hana.eco',
+  },
+  x40_engineering: {
+    ko: 'Engineering',
+    en: 'Engineering',
+    es: 'Ingeniería',
+  },
+  misc: {
+    ko: '기타',
+    en: 'Miscellaneous',
+    es: 'Varios',
+  },
+}
+
+function categoryTitle(locale: Locale, categoryPath: string): string {
+  return (
+    legacyCategoryTitles[categoryPath]?.[locale] ?? categoryPath.split('/').at(-1) ?? categoryPath
+  )
+}
+
 const sourceRoot = process.env.HANALOOP_CONTENT_DIR
 
 if (!sourceRoot) {
@@ -78,7 +120,7 @@ function categoryDefinitions(sourceDocuments: SourceDocument[]): CategoryDefinit
         parentKey: parentPath ? `${source.locale}/${parentPath}` : undefined,
         path: categoryPath,
         slug: directories[index],
-        title: directories[index],
+        title: categoryTitle(source.locale, categoryPath),
       })
     }
   }
@@ -112,6 +154,7 @@ async function main() {
   const categoryIDs = new Map<string, number>()
 
   let categoriesCreated = 0
+  let categoriesUpdated = 0
   let documentsUpdated = 0
   const missingDocuments: string[] = []
 
@@ -129,6 +172,24 @@ async function main() {
     const existingCategory = existing.docs[0]
 
     if (existingCategory) {
+      const existingParent =
+        typeof existingCategory.parent === 'object' && existingCategory.parent !== null
+          ? Number(existingCategory.parent.id)
+          : existingCategory.parent
+
+      if (existingCategory.title !== category.title || existingParent !== parent) {
+        await payload.update({
+          collection: 'doc-categories',
+          id: existingCategory.id,
+          data: {
+            parent,
+            title: category.title,
+          },
+          overrideAccess: true,
+        })
+        categoriesUpdated += 1
+      }
+
       categoryIDs.set(category.key, Number(existingCategory.id))
       continue
     }
@@ -147,28 +208,30 @@ async function main() {
     categoriesCreated += 1
   }
 
-  for (const source of sourceDocuments) {
-    const sourcePath = `${source.locale}/docs/${source.relativePath.replaceAll('\\', '/')}`
-    const document = docsBySourcePath.get(sourcePath)
+  if (!categoriesOnly) {
+    for (const source of sourceDocuments) {
+      const sourcePath = `${source.locale}/docs/${source.relativePath.replaceAll('\\', '/')}`
+      const document = docsBySourcePath.get(sourcePath)
 
-    if (!document) {
-      missingDocuments.push(sourcePath)
-      continue
+      if (!document) {
+        missingDocuments.push(sourcePath)
+        continue
+      }
+
+      const directory = path.dirname(source.relativePath).replaceAll('\\', '/')
+      const categoryID = categoryIDs.get(`${source.locale}/${directory}`)
+
+      if (!categoryID || document.parent === categoryID) continue
+
+      await payload.update({
+        collection: 'docs',
+        id: document.id,
+        data: { parent: categoryID },
+        context: { skipPagesDeploy: true },
+        overrideAccess: true,
+      })
+      documentsUpdated += 1
     }
-
-    const directory = path.dirname(source.relativePath).replaceAll('\\', '/')
-    const categoryID = categoryIDs.get(`${source.locale}/${directory}`)
-
-    if (!categoryID || document.parent === categoryID) continue
-
-    await payload.update({
-      collection: 'docs',
-      id: document.id,
-      data: { parent: categoryID },
-      context: { skipPagesDeploy: true },
-      overrideAccess: true,
-    })
-    documentsUpdated += 1
   }
 
   console.log(
@@ -176,6 +239,7 @@ async function main() {
       {
         categoriesCreated,
         categoriesFound: categories.length,
+        categoriesUpdated,
         documentsFound: sourceDocuments.length - missingDocuments.length,
         documentsUpdated,
         missingDocuments,
