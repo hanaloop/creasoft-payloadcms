@@ -1,4 +1,5 @@
 import { Docs } from '@/collections/Docs'
+import { normalizeMarkdownForMdx } from '@/utilities/normalizeMarkdownForMdx'
 import { convertLexicalToMarkdown, editorConfigFactory } from '@payloadcms/richtext-lexical'
 import { Endpoint, RichTextField } from 'payload'
 
@@ -10,6 +11,7 @@ if (!tabsField || tabsField.type !== 'tabs') {
 
 const contentField = tabsField.tabs
   .flatMap((tab) => tab.fields)
+  .flatMap((field) => (field.type === 'row' ? field.fields : [field]))
   .find(
     (field): field is RichTextField =>
       'name' in field && field.name === 'content' && field.type === 'richText',
@@ -64,10 +66,12 @@ export const exportDocs: Endpoint = {
       parent: doc.parent && typeof doc.parent === 'object' ? doc.parent.slug : null,
       parentPath: categoryPath(doc.parent),
       publishedAt: doc.publishedAt,
-      mdx: convertLexicalToMarkdown({
-        data: doc.content,
-        editorConfig,
-      }),
+      mdx: normalizeMarkdownForMdx(
+        convertLexicalToMarkdown({
+          data: doc.content,
+          editorConfig,
+        }),
+      ),
     }))
 
     return Response.json({ docs })

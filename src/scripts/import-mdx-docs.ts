@@ -530,6 +530,7 @@ async function main() {
 
   const contentField = tabsField.tabs
     .flatMap((tab) => tab.fields)
+    .flatMap((field) => (field.type === 'row' ? field.fields : [field]))
     .find(
       (field): field is RichTextField =>
         'name' in field && field.name === 'content' && field.type === 'richText',

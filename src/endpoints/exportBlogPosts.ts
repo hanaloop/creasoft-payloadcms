@@ -1,7 +1,8 @@
-import { BlogPosts } from "@/collections/BlogPosts";
-import { convertLexicalToMarkdown, editorConfigFactory } from "@payloadcms/richtext-lexical";
-import { Endpoint, RichTextField } from "payload";
+import { BlogPosts } from '@/collections/BlogPosts'
+import { convertLexicalToMarkdown, editorConfigFactory } from '@payloadcms/richtext-lexical'
+import { Endpoint, RichTextField } from 'payload'
 import { getServerSideURL } from '@/utilities/getURL'
+import { normalizeMarkdownForMdx } from '@/utilities/normalizeMarkdownForMdx'
 
 const toAbsoluteMediaURLs = (mdx: string) => {
   const payloadURL = getServerSideURL()
@@ -19,6 +20,7 @@ if (!tabsField || tabsField.type !== 'tabs') {
 
 const contentField = tabsField.tabs
   .flatMap((tab) => tab.fields)
+  .flatMap((field) => (field.type === 'row' ? field.fields : [field]))
   .find(
     (field): field is RichTextField =>
       'name' in field && field.name === 'content' && field.type === 'richText',
@@ -32,8 +34,11 @@ export const exportBlogPosts: Endpoint = {
   path: '/blog-export',
   method: 'get',
 
-  handler: async (req) => { 
-    const locale = req.query.locale === 'ko' || req.query.locale === 'en' || req.query.locale === 'es' ? req.query.locale : undefined
+  handler: async (req) => {
+    const locale =
+      req.query.locale === 'ko' || req.query.locale === 'en' || req.query.locale === 'es'
+        ? req.query.locale
+        : undefined
 
     const result = await req.payload.find({
       collection: 'blog-posts',
@@ -45,13 +50,13 @@ export const exportBlogPosts: Endpoint = {
       where: {
         and: [
           { _status: { equals: 'published' } },
-          ...(locale ? [{ locale: {equals: locale }}] : []),
-        ]
-      }
+          ...(locale ? [{ locale: { equals: locale } }] : []),
+        ],
+      },
     })
 
     const editorConfig = editorConfigFactory.fromField({
-      field: contentField
+      field: contentField,
     })
 
     return Response.json({
@@ -68,12 +73,14 @@ export const exportBlogPosts: Endpoint = {
         sourcePath: post.sourcePath,
         sourceMetadata: post.sourceMetadata,
         mdx: toAbsoluteMediaURLs(
-          convertLexicalToMarkdown({
-            data: post.content,
-            editorConfig,
-          }),
-        )
-      }))
+          normalizeMarkdownForMdx(
+            convertLexicalToMarkdown({
+              data: post.content,
+              editorConfig,
+            }),
+          ),
+        ),
+      })),
     })
-  }
+  },
 }

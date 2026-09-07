@@ -13,12 +13,18 @@ type FormFieldValue = {
 type PreviewBlockFields = {
   blockType?: string
   caption?: string
+  code?: string
   content?: DefaultTypedEditorState
   image?:
-    | { id?: number | string; url?: string; value?: { id?: number | string; url?: string } | number | string }
+    | {
+        id?: number | string
+        url?: string
+        value?: { id?: number | string; url?: string } | number | string
+      }
     | number
     | string
   legacyImageSrc?: string
+  language?: string
   type?: 'error' | 'info' | 'success' | 'warning'
 }
 
@@ -72,11 +78,7 @@ const previewConverters: JSXConvertersFunction = ({ defaultConverters }) => ({
         <aside className={`admin-content-preview__callout admin-content-preview__callout--${tone}`}>
           <strong>{tone}</strong>
           {isEditorState(fields.content) ? (
-            <RichText
-              data={fields.content}
-              converters={previewConverters}
-              disableContainer
-            />
+            <RichText data={fields.content} converters={previewConverters} disableContainer />
           ) : null}
         </aside>
       )
@@ -85,16 +87,21 @@ const previewConverters: JSXConvertersFunction = ({ defaultConverters }) => ({
       const fields = node.fields as PreviewBlockFields
       return <CaptionedImagePreview fields={fields} />
     },
+    Code: ({ node }: { node: { fields: PreviewBlockFields } }) => {
+      const fields = node.fields as PreviewBlockFields
+
+      return (
+        <pre className="admin-content-preview__code">
+          <code data-language={fields.language}>{fields.code}</code>
+        </pre>
+      )
+    },
   },
 })
 
 export default function AdminContentPreview() {
-  const title = useFormFields(
-    ([fields]) => (fields.title as FormFieldValue | undefined)?.value,
-  )
-  const content = useFormFields(
-    ([fields]) => (fields.content as FormFieldValue | undefined)?.value,
-  )
+  const title = useFormFields(([fields]) => (fields.title as FormFieldValue | undefined)?.value)
+  const content = useFormFields(([fields]) => (fields.content as FormFieldValue | undefined)?.value)
 
   return (
     <section className="admin-content-preview">

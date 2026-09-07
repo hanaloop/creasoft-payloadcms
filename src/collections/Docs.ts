@@ -2,12 +2,14 @@ import { authenticated } from '@/access/authenticated'
 import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { Callout } from '@/blocks/docs/Callout'
 import { CaptionedImage } from '@/blocks/docs/CaptionedImage'
+import { MarkdownPasteFeature } from '@/features/MarkdownPasteFeature/server'
 import {
   triggerGitLabPagesDeployAfterChange,
   triggerGitLabPagesDeployAfterDelete,
 } from '@/hooks/triggerPagesDeploy'
 import {
   BlocksFeature,
+  CodeBlock,
   lexicalEditor,
   EXPERIMENTAL_TableFeature,
   UploadFeature,
@@ -87,36 +89,39 @@ export const Docs: CollectionConfig<'docs'> = {
               },
             },
             {
-              name: 'content',
-              type: 'richText',
-              required: true,
-              admin: {
-                className: 'docs-content-editor',
-                description:
-                  '문서를 작성하세요. 이미지와 안내문은 툴바의 블록 메뉴에서 추가할 수 있습니다.',
-              },
-              editor: lexicalEditor({
-                features: ({ defaultFeatures }) => [
-                  ...defaultFeatures.filter(({ key }) => key !== 'upload'),
-                  UploadFeature({ enabledCollections: ['media'] }),
-                  EXPERIMENTAL_TableFeature(),
-                  BlocksFeature({ blocks: [CaptionedImage, Callout] }),
-                ],
-              }),
-            },
-          ],
-        },
-        {
-          label: '미리보기',
-          fields: [
-            {
-              name: 'contentPreview',
-              type: 'ui',
-              admin: {
-                components: {
-                  Field: '@/components/AdminContentPreview',
+              type: 'row',
+              fields: [
+                {
+                  name: 'content',
+                  type: 'richText',
+                  required: true,
+                  admin: {
+                    className: 'docs-content-editor',
+                    description:
+                      '문서를 작성하세요. 이미지와 안내문은 툴바의 블록 메뉴에서 추가할 수 있습니다.',
+                    width: '50%',
+                  },
+                  editor: lexicalEditor({
+                    features: ({ defaultFeatures }) => [
+                      ...defaultFeatures.filter(({ key }) => key !== 'upload'),
+                      UploadFeature({ enabledCollections: ['media'] }),
+                      EXPERIMENTAL_TableFeature(),
+                      BlocksFeature({ blocks: [CaptionedImage, Callout, CodeBlock()] }),
+                      MarkdownPasteFeature({ collection: 'docs' }),
+                    ],
+                  }),
                 },
-              },
+                {
+                  name: 'contentPreview',
+                  type: 'ui',
+                  admin: {
+                    width: '50%',
+                    components: {
+                      Field: '@/components/AdminContentPreview',
+                    },
+                  },
+                },
+              ],
             },
           ],
         },
@@ -141,6 +146,23 @@ export const Docs: CollectionConfig<'docs'> = {
               relationTo: 'doc-categories',
               index: true,
               label: '카테고리 (상위 폴더)',
+              filterOptions: ({ siblingData }) => {
+                const locale =
+                  typeof siblingData === 'object' &&
+                  siblingData !== null &&
+                  'locale' in siblingData &&
+                  typeof siblingData.locale === 'string'
+                    ? siblingData.locale
+                    : undefined
+
+                if (!locale) return false
+
+                return {
+                  locale: {
+                    equals: locale,
+                  },
+                }
+              },
               admin: {
                 allowCreate: true,
                 allowEdit: true,

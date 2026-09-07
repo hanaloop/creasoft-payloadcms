@@ -60,6 +60,23 @@ export const DocCategories: CollectionConfig = {
       relationTo: 'doc-categories',
       index: true,
       label: '상위 카테고리',
+      filterOptions: ({ siblingData }) => {
+        const locale =
+          typeof siblingData === 'object' &&
+          siblingData !== null &&
+          'locale' in siblingData &&
+          typeof siblingData.locale === 'string'
+            ? siblingData.locale
+            : undefined
+
+        if (!locale) return false
+
+        return {
+          locale: {
+            equals: locale,
+          },
+        }
+      },
       admin: {
         allowCreate: true,
         allowEdit: true,

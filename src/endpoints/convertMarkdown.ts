@@ -9,6 +9,7 @@ function contentField(collection: typeof Docs | typeof BlogPosts): RichTextField
     tabs?.type === 'tabs'
       ? tabs.tabs
           .flatMap((tab) => tab.fields)
+          .flatMap((field) => (field.type === 'row' ? field.fields : [field]))
           .find((candidate) => 'name' in candidate && candidate.name === 'content')
       : undefined
 

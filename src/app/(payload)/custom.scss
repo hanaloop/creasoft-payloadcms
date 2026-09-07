@@ -22,3 +22,18 @@
     }
   }
 }
+
+/* Keep the editor and preview side-by-side like a split-pane editor on desktop. */
+@media (min-width: 769px) {
+  .field-type.row:has(.blog-content-editor, .docs-content-editor) {
+    .row__fields {
+      align-items: flex-start;
+      flex-wrap: nowrap;
+
+      > * {
+        flex: 0 1 calc(50% - var(--base) * 0.5);
+        min-width: 0;
+      }
+    }
+  }
+}

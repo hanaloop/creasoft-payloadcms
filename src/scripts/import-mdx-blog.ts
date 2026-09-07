@@ -254,10 +254,7 @@ function tableRowCells(row: MdxNode): MdxNode[] {
 
 function htmlTableToMarkdown(source: string, table: MdxNode): string {
   const rows = findElements(table, 'tr')
-    .map((row) =>
-      tableRowCells(row)
-        .map((cell) => tableCellMarkdown(innerSource(source, cell))),
-    )
+    .map((row) => tableRowCells(row).map((cell) => tableCellMarkdown(innerSource(source, cell))))
     .filter((row) => row.length > 0)
 
   if (rows.length === 0) {
@@ -305,37 +302,47 @@ function normalizeMarkdown(markdown: string): string {
     return `\n\nPAYLOAD_TABLE_PLACEHOLDER_${index}\n\n`
   })
 
-  return protectedTables
-    // Docusaurus truncation markers are HTML comments, which are invalid in
-    // MDX v3. They do not carry document content.
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-    // Legacy CTA markup becomes an ordinary Markdown link before the MDX AST
-    // is built. This also avoids treating HTML <button> as a custom component.
-    .replace(
-      /<button\b[^>]*>\s*<a\b[^>]*\bhref=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>\s*<\/button>/gi,
-      (_match, _quote, href, label) => `[${String(label).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()}](${href})`,
-    )
-    .replace(
-      /<a\b[^>]*\bhref=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi,
-      (_match, _quote, href, label) => `[${String(label).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()}](${href})`,
-    )
-    .replace(/<hr\b[^>]*\/?>/gi, '\n\n---\n\n')
-    // Legacy posts use empty 1px divs as visual separators. Preserve their
-    // meaning as Markdown thematic breaks instead of dropping them.
-    .replace(
-      /<div\b[^>]*(?:height\s*:\s*['"]?1px|border-(?:top|bottom))[^>]*>\s*<\/div>/gi,
-      '\n\n---\n\n',
-    )
-    .replace(/^\*\*\s*\*\*$/gm, '\n---\n')
-    .replace(/<br\s*\/?\s*>/gi, '  \n')
-    .replace(/<\/?(?:div|span)[^>]*>/gi, '')
-    .replace(/<p\b[^>]*>/gi, '')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/?(?:ol|ul)[^>]*>/gi, '')
-    .replace(/<li\b[^>]*>/gi, '- ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/PAYLOAD_TABLE_PLACEHOLDER_(\d+)/g, (_match, index) => tables[Number(index)] ?? '')
+  return (
+    protectedTables
+      // Docusaurus truncation markers are HTML comments, which are invalid in
+      // MDX v3. They do not carry document content.
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      // Legacy CTA markup becomes an ordinary Markdown link before the MDX AST
+      // is built. This also avoids treating HTML <button> as a custom component.
+      .replace(
+        /<button\b[^>]*>\s*<a\b[^>]*\bhref=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>\s*<\/button>/gi,
+        (_match, _quote, href, label) =>
+          `[${String(label)
+            .replace(/<[^>]+>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()}](${href})`,
+      )
+      .replace(
+        /<a\b[^>]*\bhref=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi,
+        (_match, _quote, href, label) =>
+          `[${String(label)
+            .replace(/<[^>]+>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()}](${href})`,
+      )
+      .replace(/<hr\b[^>]*\/?>/gi, '\n\n---\n\n')
+      // Legacy posts use empty 1px divs as visual separators. Preserve their
+      // meaning as Markdown thematic breaks instead of dropping them.
+      .replace(
+        /<div\b[^>]*(?:height\s*:\s*['"]?1px|border-(?:top|bottom))[^>]*>\s*<\/div>/gi,
+        '\n\n---\n\n',
+      )
+      .replace(/^\*\*\s*\*\*$/gm, '\n---\n')
+      .replace(/<br\s*\/?\s*>/gi, '  \n')
+      .replace(/<\/?(?:div|span)[^>]*>/gi, '')
+      .replace(/<p\b[^>]*>/gi, '')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/?(?:ol|ul)[^>]*>/gi, '')
+      .replace(/<li\b[^>]*>/gi, '- ')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/PAYLOAD_TABLE_PLACEHOLDER_(\d+)/g, (_match, index) => tables[Number(index)] ?? '')
+  )
 }
 
 function contentToLexical(
@@ -449,6 +456,7 @@ async function main() {
 
   const contentField = tabsField.tabs
     .flatMap((tab) => tab.fields)
+    .flatMap((field) => (field.type === 'row' ? field.fields : [field]))
     .find(
       (field): field is RichTextField =>
         'name' in field && field.name === 'content' && field.type === 'richText',
@@ -515,10 +523,7 @@ async function main() {
           or: [
             { sourcePath: { equals: sourcePath } },
             {
-              and: [
-                { locale: { equals: source.locale } },
-                { slug: { equals: slug } },
-              ],
+              and: [{ locale: { equals: source.locale } }, { slug: { equals: slug } }],
             },
           ],
         },
