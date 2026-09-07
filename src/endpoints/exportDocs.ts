@@ -21,11 +21,24 @@ if (!contentField) {
   throw new Error('Docs content field was not found.')
 }
 
-function categoryPath(category: unknown): string[] {
+type CategoryHierarchyItem = {
+  slug: string
+  title: string
+}
+
+function categoryHierarchy(category: unknown): CategoryHierarchyItem[] {
   if (!category || typeof category !== 'object' || !('slug' in category)) return []
 
-  const record = category as { parent?: unknown; slug?: unknown }
-  return [...categoryPath(record.parent), ...(typeof record.slug === 'string' ? [record.slug] : [])]
+  const record = category as { parent?: unknown; slug?: unknown; title?: unknown }
+  if (typeof record.slug !== 'string' || typeof record.title !== 'string') return []
+
+  return [
+    ...categoryHierarchy(record.parent),
+    {
+      slug: record.slug,
+      title: record.title,
+    },
+  ]
 }
 
 export const exportDocs: Endpoint = {
@@ -55,24 +68,29 @@ export const exportDocs: Endpoint = {
     const editorConfig = editorConfigFactory.fromField({
       field: contentField,
     })
-    const docs = result.docs.map((doc) => ({
-      slug: doc.slug,
-      locale: doc.locale,
-      title: doc.title,
-      description: doc.description,
-      sourcePath: doc.sourcePath,
-      sourceMetadata: doc.sourceMetadata,
-      tags: doc.tags?.map(({ value }) => value),
-      parent: doc.parent && typeof doc.parent === 'object' ? doc.parent.slug : null,
-      parentPath: categoryPath(doc.parent),
-      publishedAt: doc.publishedAt,
-      mdx: normalizeMarkdownForMdx(
-        convertLexicalToMarkdown({
-          data: doc.content,
-          editorConfig,
-        }),
-      ),
-    }))
+    const docs = result.docs.map((doc) => {
+      const hierarchy = categoryHierarchy(doc.parent)
+
+      return {
+        slug: doc.slug,
+        locale: doc.locale,
+        title: doc.title,
+        description: doc.description,
+        sourcePath: doc.sourcePath,
+        sourceMetadata: doc.sourceMetadata,
+        tags: doc.tags?.map(({ value }) => value),
+        parent: doc.parent && typeof doc.parent === 'object' ? doc.parent.slug : null,
+        parentPath: hierarchy.map(({ slug }) => slug),
+        parentTitles: hierarchy.map(({ title }) => title),
+        publishedAt: doc.publishedAt,
+        mdx: normalizeMarkdownForMdx(
+          convertLexicalToMarkdown({
+            data: doc.content,
+            editorConfig,
+          }),
+        ),
+      }
+    })
 
     return Response.json({ docs })
   },
