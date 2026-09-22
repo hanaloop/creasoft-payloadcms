@@ -3,19 +3,36 @@ function normalizeInlineFormatting(markdown: string): string {
 
   return formats.reduce((result, format) => {
     const delimiter = format.replace(/\\/g, '')
-    const escapedDelimiter = format
+    const parts = result.split(new RegExp(`(${format})`, 'g'))
 
-    return result
-      .replace(
-        new RegExp(`(${escapedDelimiter})([\\t ]+)([^\\n]*?)\\1`, 'g'),
-        (_match, _marker, leadingWhitespace: string, content: string) =>
-          `${leadingWhitespace}${delimiter}${content}${delimiter}`,
-      )
-      .replace(
-        new RegExp(`(${escapedDelimiter})([^\\n]*?)([\\t ]+)\\1`, 'g'),
-        (_match, _marker, content: string, trailingWhitespace: string) =>
-          `${delimiter}${content}${delimiter}${trailingWhitespace}`,
-      )
+    // `split` puts delimiters at odd indexes. Handle them as ordered pairs
+    // instead of matching an arbitrary later delimiter, which can pair a
+    // closing marker with the next formatted span on the same line.
+    for (let openingIndex = 1; openingIndex + 2 < parts.length; openingIndex += 4) {
+      const contentIndex = openingIndex + 1
+      const closingIndex = openingIndex + 2
+      const followingTextIndex = closingIndex + 1
+      const content = parts[contentIndex]
+      const leadingWhitespace = content.match(/^[\t ]+/)?.[0] ?? ''
+      const trailingWhitespace = content.match(/[\t ]+$/)?.[0] ?? ''
+
+      if (leadingWhitespace) {
+        const precedingTextIndex = openingIndex - 1
+        if (!/[\t ]$/.test(parts[precedingTextIndex])) {
+          parts[precedingTextIndex] += leadingWhitespace
+        }
+        parts[contentIndex] = parts[contentIndex].slice(leadingWhitespace.length)
+      }
+
+      if (trailingWhitespace) {
+        if (!/^[\t ]/.test(parts[followingTextIndex] ?? '')) {
+          parts[followingTextIndex] = `${trailingWhitespace}${parts[followingTextIndex] ?? ''}`
+        }
+        parts[contentIndex] = parts[contentIndex].slice(0, -trailingWhitespace.length)
+      }
+    }
+
+    return parts.join('')
   }, markdown)
 }
 
