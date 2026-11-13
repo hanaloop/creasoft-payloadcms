@@ -6,6 +6,7 @@ import { MarkdownPasteFeature } from '@/features/MarkdownPasteFeature/server'
 import {
   triggerGitLabPagesDeployAfterChange,
   triggerGitLabPagesDeployAfterDelete,
+  triggerGitLabPagesDeployAfterOperation,
 } from '@/hooks/triggerPagesDeploy'
 import {
   BlocksFeature,
@@ -37,6 +38,7 @@ export const BlogPosts: CollectionConfig<'blog-posts'> = {
     ],
     afterChange: [triggerGitLabPagesDeployAfterChange],
     afterDelete: [triggerGitLabPagesDeployAfterDelete],
+    afterOperation: [triggerGitLabPagesDeployAfterOperation()],
   },
 
   indexes: [
